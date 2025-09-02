@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoU — Classificador de Emails</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>AutoU — Classificador de Emails</h1>
+      <p>Envie um .txt/.pdf ou cole o texto do email. O sistema irá classificar (Produtivo/Improdutivo) e sugerir uma
+        resposta automática.</p>
+    </header>
+
+    <section class="card">
+      <form id="email-form">
+        <div class="field">
+          <label for="file">Arquivo (.txt ou .pdf)</label>
+          <input type="file" id="file" name="file" accept=".txt,.pdf" />
+        </div>
+
+        <div class="divider"><span>ou</span></div>
+
+        <div class="field">
+          <label for="text">Texto do email</label>
+          <textarea id="text" name="text" rows="8" placeholder="Cole aqui o conteúdo do email..."></textarea>
+        </div>
+
+        <button type="submit" id="submit">Processar</button>
+      </form>
+    </section>
+
+    <section id="results" class="card hidden">
+      <h2>Resultado</h2>
+      <p><strong>Categoria:</strong> <span id="category"></span></p>
+      <div class="reply">
+        <label>Resposta sugerida</label>
+        <textarea id="reply" rows="8" readonly></textarea>
+        <button id="copy-btn">Copiar resposta</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>Feito com FastAPI + Hugging Face • <a href="https://fastapi.tiangolo.com/" target="_blank"
+          rel="noreferrer">Docs</a></p>
+    </footer>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+
+</html>
