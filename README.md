@@ -14,9 +14,8 @@ Uma aplicação simples que:
 ```bash
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-export HF_HOME=.hf_cache  # (opcional) cache local
-export HF_CLASSIFIER_MODEL=facebook/bart-large-mnli  # (opcional)
-export HF_GENERATION_MODEL=google/flan-t5-base       # (opcional)
+export HF_CLASSIFIER_MODEL=facebook/bart-large-mnli
+export HF_GENERATION_MODEL=google/flan-t5-base
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -24,7 +23,7 @@ uvicorn app.main:app --reload --port 8000
 Ver `Dockerfile` abaixo. Exemplo:
 ```bash
 docker build -t autou-email-classifier .
-docker run -p 8000:8000 --env HF_HOME=/cache --name autou autou-email-classifier
+docker run --rm -p 8000:8000 --env-file .env autou-email-classifier
 ```
 
 ## Acesse: 'http://localhost:8000'
