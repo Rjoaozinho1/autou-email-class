@@ -92,8 +92,8 @@ def preprocess(text: str) -> str:
 
 
 def classify_email(text: str) -> str:
-    
-    result = classifier(text, LABELS_PT)
+    # Ensure overly long inputs are truncated by the tokenizer
+    result = classifier(text, LABELS_PT, truncation=True)
     return result["labels"][0]
 
 
@@ -125,7 +125,8 @@ def build_prompt(category: str, original_text: str) -> str:
 def generate_reply(category: str, original_text: str) -> str:
 
     prompt = build_prompt(category, original_text)
-    out = generator(prompt, max_new_tokens=180)
+    # Truncate the prompt to the model's max input length to avoid indexing errors
+    out = generator(prompt, max_new_tokens=180, truncation=True)
     text = out[0]["generated_text"].strip()
     
     if "RESPOSTA:" in text:
