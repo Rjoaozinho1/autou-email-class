@@ -38,6 +38,7 @@ except Exception:
     _HAS_NLTK = False
 
 from transformers import pipeline
+import requests
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -58,20 +59,27 @@ app.add_middleware(
 
 CLASSIFIER_MODEL = os.getenv("HF_CLASSIFIER_MODEL")
 GENERATION_MODEL = os.getenv("HF_GENERATION_MODEL")
+GENERATION_PROVIDER = os.getenv("GENERATION_PROVIDER", "hf").lower()
 
 logger.info("Starting model initialization")
 logger.info(f"HF_HOME: {os.getenv('HF_HOME', '(default)')}")
 logger.info(f"TRANSFORMERS_CACHE: {os.getenv('TRANSFORMERS_CACHE', '(default)')}")
 logger.info(f"Classifier model: {CLASSIFIER_MODEL}")
-logger.info(f"Generation model: {GENERATION_MODEL}")
+logger.info(f"Generation provider: {GENERATION_PROVIDER}")
+if GENERATION_PROVIDER == "hf":
+    logger.info(f"Generation model: {GENERATION_MODEL}")
 
 _t0 = time.time()
 classifier = pipeline("zero-shot-classification", model=CLASSIFIER_MODEL)
 logger.info(f"Classifier pipeline ready in {time.time() - _t0:.2f}s")
 
-_t1 = time.time()
-generator = pipeline("text2text-generation", model=GENERATION_MODEL)
-logger.info(f"Generator pipeline ready in {time.time() - _t1:.2f}s")
+generator = None
+if GENERATION_PROVIDER == "hf":
+    _t1 = time.time()
+    generator = pipeline("text2text-generation", model=GENERATION_MODEL)
+    logger.info(f"Generator pipeline ready in {time.time() - _t1:.2f}s")
+else:
+    logger.info("Using external generation provider; no HF generator initialized")
 
 LABELS_PT = ["Produtivo", "Improdutivo"]
 
@@ -167,14 +175,105 @@ def generate_reply(category: str, original_text: str) -> str:
     logger.debug(
         f"Generating reply for category={category} prompt_chars={len(prompt)} max_new_tokens=180"
     )
-    # Truncate the prompt to the model's max input length to avoid indexing errors
-    out = generator(prompt, max_new_tokens=180, truncation=True)
-    text = out[0]["generated_text"].strip()
+    # Choose provider for generation
+    max_new_tokens = 180
+    if GENERATION_PROVIDER == "groq":
+        text = _generate_with_groq(prompt, max_new_tokens)
+    elif GENERATION_PROVIDER == "nvidia":
+        text = _generate_with_nvidia(prompt, max_new_tokens)
+    elif GENERATION_PROVIDER == "hf":
+        # Truncate the prompt to the model's max input length to avoid indexing errors
+        out = generator(prompt, max_new_tokens=max_new_tokens, truncation=True)
+        text = out[0]["generated_text"].strip()
+    else:
+        raise RuntimeError(f"Unsupported GENERATION_PROVIDER: {GENERATION_PROVIDER}")
     
     if "RESPOSTA:" in text:
         text = text.split("RESPOSTA:")[-1].strip()
     logger.info(f"Generated reply chars={len(text)}")
     return text
+
+
+def _generate_with_groq(prompt: str, max_new_tokens: int) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+    model = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+    base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not set in environment")
+
+    url = f"{base_url}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Você é um assistente de atendimento ao cliente em uma empresa financeira. "
+                    "Responda de forma educada, objetiva e breve."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": float(os.getenv("GENERATION_TEMPERATURE", "0.7")),
+        "max_tokens": max_new_tokens,
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"].strip()
+        logger.debug("Groq generation successful")
+        return text
+    except Exception as e:
+        logger.exception("Groq API call failed")
+        raise
+
+
+def _generate_with_nvidia(prompt: str, max_new_tokens: int) -> str:
+    api_key = os.getenv("NIM_API_KEY") or os.getenv("NVIDIA_API_KEY")
+    model = os.getenv("NIM_MODEL", "meta/llama-3.1-70b-instruct")
+    base_url = os.getenv("NIM_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+
+    if not api_key:
+        raise RuntimeError("NIM_API_KEY or NVIDIA_API_KEY not set in environment")
+
+    url = f"{base_url}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Você é um assistente de atendimento ao cliente em uma empresa financeira. "
+                    "Responda de forma educada, objetiva e breve."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": float(os.getenv("GENERATION_TEMPERATURE", "0.7")),
+        "max_tokens": max_new_tokens,
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"].strip()
+        logger.debug("NIM generation successful")
+        return text
+    except Exception:
+        logger.exception("NVIDIA NIM API call failed")
+        raise
 
 
 @app.get("/")
