@@ -3,3 +3,4 @@
 .env
 teste_email.pdf
 *.csv
+__pycache__
