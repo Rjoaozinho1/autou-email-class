@@ -2,3 +2,4 @@
 .venv
 .env
 teste_email.pdf
+*.csv
