@@ -103,7 +103,7 @@ def read_txt_or_pdf(file: UploadFile) -> str:
         return ""
     
 
-def _groq_chat(messages: List[dict], temperature: float = 0.0, max_tokens: int = 128) -> str:
+def _groq_chat(messages: List[dict], temperature: float = 0.5, max_tokens: int = 128) -> str:
     """Call Groq using the official groq Python client (non-stream)."""
 
     if not GROQ_API_KEY:
@@ -116,12 +116,15 @@ def _groq_chat(messages: List[dict], temperature: float = 0.0, max_tokens: int =
         messages=messages,
         temperature=temperature,
         max_completion_tokens=max_tokens,
+        reasoning_effort="medium",
         top_p=1,
         stream=False,
         stop=None,
     )
 
     try:
+        logger.info(f"Groq response: {completion}")
+
         return (completion.choices[0].message.content or "").strip()
     except Exception:
         try:
@@ -230,6 +233,8 @@ def classify_email(text: str) -> tuple[str, str]:
 
     try:
 
+        logger.info(f"Raw Groq output: {out}")
+
         data = json.loads(out)
         label = str(data.get("label", "")).strip()
         reply = str(data.get("suggested_reply","")).strip()
@@ -252,11 +257,9 @@ def classify_email(text: str) -> tuple[str, str]:
 
     label_norm = label.lower()
 
-    if "produtivo" in label_norm:
+    if "produtivo" in label_norm or "Produtivo" in label_norm:
         final = "Produtivo"
-    elif "improdutivo" in label_norm:
-        final = "Improdutivo"
-    else:
+    elif "improdutivo" in label_norm or "Improdutivo" in label_norm:
         final = "Improdutivo"
 
     logger.info(f"classification -> raw='{out}' | label='{final}'")
