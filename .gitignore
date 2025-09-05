@@ -1,6 +1,5 @@
 .hf_cache
 .venv
 .env
-teste_email.pdf
 *.csv
 __pycache__
