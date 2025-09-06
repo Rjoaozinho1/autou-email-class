@@ -97,7 +97,6 @@ def classify_email(text: str) -> tuple[str, str]:
     out = groq_chat(
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         temperature=CLASSIFICATION_TEMPERATURE,
-        max_tokens=128,
     )
 
     label = None
@@ -106,9 +105,15 @@ def classify_email(text: str) -> tuple[str, str]:
     try:
         logger.info(f"Raw Groq output: {out}")
         data = json.loads(out)
-        label = str(data.get("label", "")).strip()
+
+        label = str(data.get("label", "")).strip().lower()
         reply = str(data.get("suggested_reply", "")).strip()
+
+        logger.info(f"Parsed Groq output: label={label} | reply_len={reply}")
     except Exception:
+
+        logger.warning("Failed to parse Groq output as JSON, attempting regex fallback", exc_info=True)
+
         m = re.search(r'"label"\s*:\s*"(?P<label>[^"]+)"', out, re.IGNORECASE)
         r = re.search(r'"suggested_reply"\s*:\s*"(?P<reply>[^"]+)"', out, re.IGNORECASE)
 
@@ -124,15 +129,14 @@ def classify_email(text: str) -> tuple[str, str]:
             reply = (out or "").strip()
 
     final = None
-    label_norm = (label or "").lower()
-    if "produtivo" in label_norm or "Produtivo" in (label or ""):
+    if "produtivo" == label:
         final = "Produtivo"
-    elif "improdutivo" in label_norm or "Improdutivo" in (label or ""):
+    elif "improdutivo" == label:
         final = "Improdutivo"
     else:
         final = label or "Improdutivo"
 
     logger.info(f"classification -> raw='{out}' | label='{final}'")
 
-    return final, (reply or "")
+    return final, reply
 
