@@ -41,11 +41,9 @@ async def process_email(
             logger.warning("event=process_validation_failed reason=empty_content")
             return JSONResponse(status_code=400, content={"error": "Nenhum conteúdo foi enviado."})
 
-        cleaned = preprocess(content)
+        logger.debug(f"event=preprocess_done preview={content[:200]!r}")
 
-        logger.debug(f"event=preprocess_done preview={cleaned[:200]!r}")
-
-        category, reply = classify_email(cleaned)
+        category, reply = classify_email(content)
 
         logger.info(f"event=classified category={category}")
         logger.debug(f"event=reply_generated size={len(reply)}")
