@@ -16,11 +16,23 @@
         resposta automática.</p>
     </header>
 
+    <div id="alert" class="alert alert-error hidden">
+      <span id="alert-text"></span>
+      <button type="button" class="close" id="alert-close" aria-label="Fechar">✕</button>
+    </div>
+
     <section class="card">
       <form id="email-form">
         <div class="field">
           <label for="file">Arquivo (.txt ou .pdf)</label>
-          <input type="file" id="file" name="file" accept=".txt,.pdf" />
+          <div id="dropzone" class="file-upload" tabindex="0" role="button" aria-label="Selecionar arquivo">
+            <input type="file" id="file" name="file" accept=".txt,.pdf" />
+            <button type="button" id="file-btn" class="btn-secondary btn-icon">
+              <span>📎</span> <span>Escolher arquivo</span>
+            </button>
+            <span id="file-name" class="file-name">Nenhum arquivo selecionado</span>
+          </div>
+          <small class="hint">Arraste e solte um arquivo ou clique para escolher.</small>
         </div>
 
         <div class="divider"><span>ou</span></div>
@@ -45,8 +57,8 @@
     </section>
 
     <footer>
-      <p>Feito com FastAPI + Hugging Face • <a href="https://fastapi.tiangolo.com/" target="_blank"
-          rel="noreferrer">Docs</a></p>
+      <p>Feito com FastAPI + Groq • <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noreferrer">Docs</a>
+      </p>
     </footer>
   </div>
 
