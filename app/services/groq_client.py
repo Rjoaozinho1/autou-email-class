@@ -4,7 +4,7 @@ from ..core.settings import GROQ_API_KEY, GROQ_MODEL
 from ..core.logging import logger
 
 
-def groq_chat(messages: List[Dict[str, str]], temperature: float = 0.5, max_tokens: int = 128) -> str:
+def groq_chat(messages: List[Dict[str, str]], temperature: float = 0.4) -> str:
     """Call Groq using the official groq Python client (non-stream)."""
 
     if not GROQ_API_KEY:
@@ -16,8 +16,7 @@ def groq_chat(messages: List[Dict[str, str]], temperature: float = 0.5, max_toke
         model=GROQ_MODEL,
         messages=messages,
         temperature=temperature,
-        max_completion_tokens=max_tokens,
-        reasoning_effort="medium",
+        reasoning_effort="low",
         top_p=1,
         stream=False,
         stop=None,
